@@ -13,6 +13,8 @@ TOKEN = environ['TOKEN']
 # DB_PASSWORD = environ['DATABASE_PASSWORD']
 # DB_DATABASE = environ['DATABASE_NAME']
 
+ADMIN_ID = environ['ADMIN_1_ID']
+
 ADMIN_IDS = [
     environ['ADMIN_1_ID']
 ]

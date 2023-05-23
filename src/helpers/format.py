@@ -1,5 +1,3 @@
-
-
 def admin_format(admin):
     information = "Информация администратора\n\n"
 
@@ -38,10 +36,10 @@ def confirmation_exploitation_format(exploitation, products):
     return information
 
 
-def exploitation_format(exploitation, products):
+def exploitation_format(exploitation, admin_name, products):
     information = "Информация о пользования с техниками\n\n"
 
-    information += f"Отдал - {exploitation['admin']}\n"
+    information += f"Отдал - {admin_name}\n"
     information += f"Получено - {exploitation['being_given']}\n"
 
     information += "\n<b>Техники</b>\n"

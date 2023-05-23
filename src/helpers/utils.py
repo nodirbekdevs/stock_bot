@@ -26,7 +26,7 @@ class Pagination:
             all_data = await exploitation_controller.get_all(query)
             clause = "using_exploitation" if query['status'] == "using" else "used_exploitation"
 
-        keyword, message, keyboard = "", "", InlineKeyboardMarkup()
+        keyword, message, admin_name, keyboard = "", "", "", InlineKeyboardMarkup()
 
         if len(data) > 0:
             message = f'<b>Текущий: {offset + 1}-{len(data) + offset}, Общий: {len(all_data)}</b>\n\n'
@@ -50,6 +50,8 @@ class Pagination:
                 elif self.data_type == 'EXPLOITATIONS':
                     callback_data = f"sel.expo_{single_data['_id']}"
 
+                    admin_name = (await admin_controller.get_one({"admin_id": single_data['admin']}))['first_name']
+
                 obj = InlineKeyboardButton(text=f'{i}', callback_data=callback_data)
 
                 arr.append(obj)
@@ -63,11 +65,11 @@ class Pagination:
                 elif self.data_type == 'PRODUCTS':
                     message += f"<b>{i}.</b>  {single_data['name']}  {single_data['count']}  {single_data['in_use']}  {single_data['not_in_use']}\n"
                 elif self.data_type == 'EXPLOITATIONS':
-                    message += f"<b>{i}.</b>  {single_data['admin']}  {single_data['being_given']}\n"
+                    message += f"<b>{i}.</b>  {admin_name}  {single_data['being_given']}\n"
             keyboard.row(*arr)
 
             left_page_callback_data = f'left#{clause}#{page - 1}' if page != 1 else 'none'
-            right_page_callback_data = f'right#{clause}#{page + 1}' if len(data) + offset != all_data else 'none'
+            right_page_callback_data = f'right#{clause}#{page + 1}' if len(data) + offset != len(all_data) else 'none'
 
             inline_keyboard = [
                 InlineKeyboardButton(text='⬅', callback_data=left_page_callback_data),

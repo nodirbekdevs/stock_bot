@@ -10,16 +10,10 @@ from src.helpers.format import admin_format
 from src.states.admin import AdminStates
 
 
-# @dp.callback_query_handler(lambda query: query.data == "back", state=AdminStates.process)
-# async def back_from_admins_handler(query: CallbackQuery, state: FSMContext):
-#     await state.finish()
-#     await query.message.edit_text(text="Выберите пункт", reply_markup=main_keyboard())
-
-
 @dp.callback_query_handler(lambda query: query.data == "all_admins", state=AdminStates.process)
 async def all_admins_handler(query: CallbackQuery, state: FSMContext):
     pagination = Pagination(data_type="ADMINS")
-    paginated = await pagination.paginate(query={}, page=1, limit=6)
+    paginated = await pagination.paginate(query=dict(status="active"), page=1, limit=6)
     await AdminStates.all_admins.set()
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
@@ -28,11 +22,6 @@ async def all_admins_handler(query: CallbackQuery, state: FSMContext):
 async def back_from_all_admins_handler(query: CallbackQuery, state: FSMContext):
     await AdminStates.process.set()
     await query.message.edit_text(text="Страница админов", reply_markup=admin_keyboard())
-#
-#
-# @dp.callback_query_handler(lambda query: query.data == "none", state=AdminStates.all_admins)
-# async def back_from_all_products_handler(query: CallbackQuery, state: FSMContext):
-#     await query.answer(text="Здесь нет данных. Вы выбрали не ту страницу.", show_alert=True)
 
 
 @dp.callback_query_handler(lambda query: query.data == "delete", state=AdminStates.all_admins)
@@ -45,7 +34,7 @@ async def back_from_all_products_handler(query: CallbackQuery, state: FSMContext
 async def pagination_admins_handler(query: CallbackQuery, state: FSMContext):
     page = query.data.split("#")[2]
     pagination = Pagination(data_type="ADMINS")
-    paginated = pagination.paginate(query={}, page=int(page), limit=6)
+    paginated = pagination.paginate(query=dict(status="active"), page=int(page), limit=6)
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
 
@@ -63,7 +52,7 @@ async def get_admin_handler(query: CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(lambda query: query.data == "back", state=AdminStates.one_admin)
 async def back_from_get_admin_handler(query: CallbackQuery, state: FSMContext):
     pagination = Pagination(data_type="ADMINS")
-    paginated = await pagination.paginate(query={}, page=1, limit=6)
+    paginated = await pagination.paginate(query=dict(status="active"), page=1, limit=6)
     await AdminStates.all_admins.set()
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
@@ -81,7 +70,7 @@ async def delete_admin_handler(query: CallbackQuery, state: FSMContext):
     await admin_controller.delete({"_id": ObjectId(id)})
 
     pagination = Pagination(data_type="ADMINS")
-    paginated = await pagination.paginate(query={}, page=1, limit=6)
+    paginated = await pagination.paginate(query=dict(status="active"), page=1, limit=6)
     await AdminStates.all_admins.set()
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
@@ -133,7 +122,7 @@ async def add_admin_handler(message: Message, state: FSMContext):
 
     await bot.delete_message(message.chat.id, message_for_delete)
 
-    await message.answer(text="Новый админ добален", reply_markup=admin_keyboard())
+    message_id_for_delete = await message.answer(text="Новый админ добален", reply_markup=admin_keyboard())
 
     async with state.proxy() as data:
-        data['message_for_delete'] = message_for_delete
+        data['message_for_delete'] = message_id_for_delete.message_id
