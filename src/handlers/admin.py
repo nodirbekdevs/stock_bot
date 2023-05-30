@@ -94,7 +94,7 @@ async def back_from_add_admin_handler(query: CallbackQuery, state: FSMContext):
 async def add_admin_handler(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    message_for_delete = data['message_for_delete']
+    message_for_delete = data[f'message_for_delete_{message.from_user.id}']
 
     if not is_num(message.text):
         await message.delete()
@@ -125,4 +125,4 @@ async def add_admin_handler(message: Message, state: FSMContext):
     message_id_for_delete = await message.answer(text="Новый админ добален", reply_markup=admin_keyboard())
 
     async with state.proxy() as data:
-        data['message_for_delete'] = message_id_for_delete.message_id
+        data[f'message_for_delete_{message.from_user.id}'] = message_id_for_delete.message_id

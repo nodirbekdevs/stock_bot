@@ -15,7 +15,7 @@ from src.states.exploitation import ExploitationStates
 async def cmd_start(message: Message, state: FSMContext):
     message_for_delete = await message.answer(text="Выберите пункт", reply_markup=main_keyboard())
     async with state.proxy() as data:
-        data['message_for_delete'] = message_for_delete.message_id
+        data[f'message_for_delete_{message.from_user.id}'] = message_for_delete.message_id
 
 
 @dp.callback_query_handler(lambda query: query.data == "admins")

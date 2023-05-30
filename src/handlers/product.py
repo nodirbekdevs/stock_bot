@@ -10,18 +10,10 @@ from src.helpers.format import product_format
 from src.states.product import ProductStates
 
 
-# @dp.callback_query_handler(lambda query: query.data == "back", state=ProductStates.process)
-# async def back_from_products_handler(query: CallbackQuery, state: FSMContext):
-#     await state.finish()
-#     await query.message.edit_text(text="Выберите пункт", reply_markup=main_keyboard())
-
-
 @dp.callback_query_handler(lambda query: query.data == "all_products", state=ProductStates.process)
 async def all_products_handler(query: CallbackQuery, state: FSMContext):
-    print(query.data)
     pagination = Pagination(data_type="PRODUCTS")
     paginated = await pagination.paginate(query={}, page=1, limit=6)
-    print(paginated)
     await ProductStates.all_products.set()
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
@@ -30,11 +22,6 @@ async def all_products_handler(query: CallbackQuery, state: FSMContext):
 async def back_from_all_products_handler(query: CallbackQuery, state: FSMContext):
     await ProductStates.process.set()
     await query.message.edit_text(text="Страница с техниками", reply_markup=products_keyboard())
-#
-#
-# @dp.callback_query_handler(lambda query: query.data == "none", state=ProductStates.all_products)
-# async def back_from_all_products_handler(query: CallbackQuery, state: FSMContext):
-#     await query.answer(text="Здесь нет данных. Вы выбрали не ту страницу.", show_alert=True)
 
 
 @dp.callback_query_handler(lambda query: query.data == "delete", state=ProductStates.all_products)
@@ -163,7 +150,7 @@ async def add_product_name_handler(message: Message, state: FSMContext):
         await message.edit_text("Такая ткхника уже есть в складе", reply_markup=products_keyboard())
         return
 
-    message_for_delete = (await state.get_data())['message_for_delete']
+    message_for_delete = (await state.get_data())[f'message_for_delete_{message.from_user.id}']
 
     await ProductStates.count.set()
 
@@ -174,7 +161,7 @@ async def add_product_name_handler(message: Message, state: FSMContext):
     message_for_delete_1 = await message.answer(text=f"Отправьте сколько {product} есть в складе")
 
     async with state.proxy() as data:
-        data['message_for_delete_1'] = message_for_delete_1.message_id
+        data[f'message_for_delete_1_{message.from_user.id}'] = message_for_delete_1.message_id
         data['new_product_name'] = product
 
 
@@ -186,7 +173,7 @@ async def add_product_handler(message: Message, state: FSMContext):
 
     data = await state.get_data()
 
-    message_for_delete_1 = data['message_for_delete_1']
+    message_for_delete_1 = data[f'message_for_delete_1_{message.from_user.id}']
     product_name = data['new_product_name']
 
     product_data = dict(name=product_name, count=int(message.text), in_use=0, not_in_use=int(message.text), status='active')
@@ -201,4 +188,4 @@ async def add_product_handler(message: Message, state: FSMContext):
     message_for_delete = await message.answer(text="Техника добавлена", reply_markup=products_keyboard())
 
     async with state.proxy() as data:
-        data['message_for_delete'] = message_for_delete.message_id
+        data[f'message_for_delete_{message.from_user.id}'] = message_for_delete.message_id
