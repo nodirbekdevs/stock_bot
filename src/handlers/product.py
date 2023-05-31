@@ -136,7 +136,9 @@ async def back_from_add_product_handler(query: CallbackQuery, state: FSMContext)
 
 @dp.message_handler(state=ProductStates.name)
 async def add_product_name_handler(message: Message, state: FSMContext):
-    product = message.text
+    data = await state.get_data()
+
+    product, message_for_delete = message.text, data.get('message_for_delete')
 
     if is_num(message.text):
         await message.answer("Отправьте название а не номер")
@@ -153,20 +155,12 @@ async def add_product_name_handler(message: Message, state: FSMContext):
 
     await message.delete()
 
-    try:
-        message_for_delete = (await state.get_data())[f'message_for_delete']
+    if message_for_delete is not None:
         await bot.delete_message(message.chat.id, message_for_delete)
-    except:
-        pass
 
     message_for_delete_1 = await message.answer(text=f"Отправьте сколько {product} есть в складе")
 
     await state.update_data(dict(message_for_delete_1=message_for_delete_1.message_id, new_product_name=product))
-    # await state.update_data(message_for_delete_1=message_for_delete_1.message_id, new_product_name=product)
-
-    # async with state.proxy() as data:
-    #     data[f'message_for_delete_1'] = message_for_delete_1.message_id
-    #     data['new_product_name'] = product
 
 
 @dp.message_handler(state=ProductStates.count)
@@ -176,7 +170,7 @@ async def add_product_handler(message: Message, state: FSMContext):
         return
 
     data = await state.get_data()
-    product_name = data['new_product_name']
+    product_name, message_for_delete_1 = data.get('new_product_name'), data.get('message_for_delete_1')
 
     product_data = dict(name=product_name, count=int(message.text), in_use=0, not_in_use=int(message.text), status='active')
 
@@ -186,16 +180,9 @@ async def add_product_handler(message: Message, state: FSMContext):
 
     await message.delete()
 
-    try:
-        message_for_delete_1 = data[f'message_for_delete_1']
+    if message_for_delete_1 is not None:
         await bot.delete_message(message.chat.id, message_for_delete_1)
-    except:
-        message_for_delete = await message.answer(text="Техника добавлена")
-        await state.update_data(dict(message_for_delete=message_for_delete.message_id))
-        return
 
     message_for_delete = await message.answer(text="Техника добавлена", reply_markup=products_keyboard())
-    await state.update_data(dict(message_for_delete=message_for_delete.message_id))
 
-    # async with state.proxy() as data:
-    #     data[f'message_for_delete'] = message_for_delete.message_id
+    await state.update_data(dict(message_for_delete=message_for_delete.message_id))

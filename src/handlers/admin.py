@@ -93,6 +93,8 @@ async def back_from_add_admin_handler(query: CallbackQuery, state: FSMContext):
 async def add_admin_handler(message: Message, state: FSMContext):
     data = await state.get_data()
 
+    message_for_delete = data.get('message_for_delete')
+
     if not is_num(message.text):
         await message.delete()
         await message.answer(text="Пожалуйста, отправьте правильный telegram_id")
@@ -105,19 +107,11 @@ async def add_admin_handler(message: Message, state: FSMContext):
     try:
         admin = await bot.get_chat(chat_id=int(message.text))
     except:
-        message_for_delete = data['message_for_delete']
-        await bot.delete_message(message.from_user.id, message_for_delete)
-
+        if message_for_delete is not None:
+            await bot.delete_message(message.from_user.id, message_for_delete)
         message_id_for_delete = await message.answer("Отправьте правильное telegrma id", reply_markup=admin_keyboard())
-
         await AdminStates.process.set()
-
         await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
-        # await state.update_data(message_for_delete=message_id_for_delete.message_id)
-
-        # async with state.proxy() as data:
-        #     data[f'message_for_delete'] = message_id_for_delete.message_id
-
         return
 
     admin_data = dict(
@@ -137,16 +131,9 @@ async def add_admin_handler(message: Message, state: FSMContext):
 
     await message.delete()
 
-    try:
-        message_for_delete = data[f'message_for_delete']
+    if message_for_delete is not None:
         await bot.delete_message(message.chat.id, message_for_delete)
-    except:
-        message_id_for_delete = await message.answer(text="Новый админ добален")
-        await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
-        return
 
     message_id_for_delete = await message.answer(text="Новый админ добален", reply_markup=admin_keyboard())
-    await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
 
-    # async with state.proxy() as data:
-    #     data[f'message_for_delete'] = message_id_for_delete.message_id
+    await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
