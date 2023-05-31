@@ -4,7 +4,7 @@ from bson import ObjectId
 
 from src.loader import dp, bot
 from src.controllers import admin_controller
-from src.helpers.keyboards import main_keyboard, admin_keyboard, back_keyboard, one_admin_keyboard
+from src.helpers.keyboards import admin_keyboard, one_admin_keyboard
 from src.helpers.utils import Pagination, is_num
 from src.helpers.format import admin_format
 from src.states.admin import AdminStates
@@ -30,10 +30,13 @@ async def back_from_all_products_handler(query: CallbackQuery, state: FSMContext
     await query.message.edit_text(text="Страница админов", reply_markup=admin_keyboard())
 
 
-@dp.callback_query_handler(lambda query: query.data in ["left#admins#", "right#admins#"], state=AdminStates.all_admins)
+@dp.callback_query_handler(
+    lambda query: query.data.startswith("left#admins#") or query.data.startswith("right#admins#"),
+    state=AdminStates.all_admins
+    )
 async def pagination_admins_handler(query: CallbackQuery, state: FSMContext):
     pagination = Pagination(data_type="ADMINS")
-    paginated = pagination.paginate(query=dict(status="active"), page=int(query.data.split("#")[2]), limit=6)
+    paginated = await pagination.paginate(query=dict(status="active"), page=int(query.data.split("#")[2]), limit=6)
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
 
@@ -66,7 +69,7 @@ async def delete_admin_handler(query: CallbackQuery, state: FSMContext):
         await query.message.answer("Админ используют технику из склада. Так что вы не можете удалить")
         return
 
-    await admin_controller.delete({"_id": ObjectId(id)})
+    await admin_controller.update({"_id": ObjectId(id)}, {"status": "inactive"})
 
     pagination = Pagination(data_type="ADMINS")
     paginated = await pagination.paginate(query=dict(status="active"), page=1, limit=6)
@@ -77,10 +80,7 @@ async def delete_admin_handler(query: CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(lambda query: query.data == "add_admin", state=AdminStates.process)
 async def add_admin_handler(query: CallbackQuery, state: FSMContext):
     await AdminStates.add.set()
-    await query.message.edit_text(
-        text="Отправьте telegram_id нового админа",
-        reply_markup=back_keyboard()
-    )
+    await query.message.edit_text(text="Отправьте telegram_id нового админа")
 
 
 @dp.callback_query_handler(lambda query: query.data == "back", state=AdminStates.add)
@@ -91,27 +91,37 @@ async def back_from_add_admin_handler(query: CallbackQuery, state: FSMContext):
 
 @dp.message_handler(state=AdminStates.add)
 async def add_admin_handler(message: Message, state: FSMContext):
-    data = await state.get_data()
-
-    message_for_delete = data.get('message_for_delete')
-
     if not is_num(message.text):
-        await message.delete()
-        await message.answer(text="Пожалуйста, отправьте правильный telegram_id")
+        await message.answer(text="Пожалуйста, отправьте правильный telegram_id", reply_markup=admin_keyboard())
         return
 
+    await AdminStates.process.set()
+
     if message.from_user.id == int(message.text):
-        await message.answer("Отправьте telegrma id другого админа. Это telegram id пренадлежит вам.")
+        await message.answer(
+            text="Отправьте telegrma id другого админа. Это telegram id пренадлежит вам.", reply_markup=admin_keyboard()
+        )
+        return
+
+    exist_admin = await admin_controller.get_one({"admin_id": int(message.text), "status": {"$in": ['active', 'inactive']}})
+
+    if exist_admin:
+        message_text = ""
+
+        if exist_admin['status'] == 'inactive':
+            await admin_controller.update({"admin_id": int(message.text)}, {"status": "active"})
+            message_text = "Новый админ добален"
+
+        if exist_admin['status'] == 'active':
+            message_text = "Этот админ уже добавлен к базе"
+
+        await message.answer(message_text, reply_markup=admin_keyboard())
         return
 
     try:
         admin = await bot.get_chat(chat_id=int(message.text))
     except:
-        if message_for_delete is not None:
-            await bot.delete_message(message.from_user.id, message_for_delete)
-        message_id_for_delete = await message.answer("Отправьте правильное telegrma id", reply_markup=admin_keyboard())
-        await AdminStates.process.set()
-        await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
+        await message.answer("Отправьте правильное telegrma id", reply_markup=admin_keyboard())
         return
 
     admin_data = dict(
@@ -127,13 +137,6 @@ async def add_admin_handler(message: Message, state: FSMContext):
 
     await bot.send_message(chat_id=admin['id'], text="Вы успешно добавлены для пользования склада. Нажмите /start")
 
-    await AdminStates.process.set()
-
     await message.delete()
 
-    if message_for_delete is not None:
-        await bot.delete_message(message.chat.id, message_for_delete)
-
-    message_id_for_delete = await message.answer(text="Новый админ добален", reply_markup=admin_keyboard())
-
-    await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
+    await message.answer(text="Новый админ добален", reply_markup=admin_keyboard())

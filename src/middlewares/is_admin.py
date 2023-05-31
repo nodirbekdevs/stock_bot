@@ -12,9 +12,7 @@ class AdminCheckerMiddleware(BaseMiddleware):
         self.bot = bot
 
     async def on_process_message(self, message: Message, data, *args):
-        core_admin = await admin_controller.get_one({"admin_id": ADMIN_ID})
-
-        print(core_admin)
+        core_admin = await admin_controller.get_one({"admin_id": ADMIN_ID, "status": "process"})
 
         if not core_admin:
             chat_data = await self.bot.get_chat(chat_id=ADMIN_ID)
@@ -28,9 +26,9 @@ class AdminCheckerMiddleware(BaseMiddleware):
 
             await admin_controller.make(admin_data)
 
-        admin = await admin_controller.get_one({"admin_id": message.from_user.id})
+        admin = await admin_controller.get_one({"admin_id": message.from_user.id, "status": {"$in": ['process', 'active']}})
 
-        if not admin and message.from_user.id not in ADMIN_IDS:
+        if admin is None and message.from_user.id not in ADMIN_IDS:
             await self.bot.send_message(chat_id=message.from_user.id, text='Not for you')
             raise CancelHandler()
 

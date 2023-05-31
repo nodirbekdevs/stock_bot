@@ -56,7 +56,7 @@ class Pagination:
 
                 arr.append(obj)
 
-                if len(arr) % 6 == 0:
+                if len(arr) % limit == 0:
                     keyboard.row(*arr)
                     arr = []
 

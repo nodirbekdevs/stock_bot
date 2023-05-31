@@ -2,9 +2,9 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message
 from bson import ObjectId
 
-from src.loader import dp, bot
+from src.loader import dp
 from src.controllers import product_controller
-from src.helpers.keyboards import main_keyboard, products_keyboard, back_keyboard, one_product_keyboard
+from src.helpers.keyboards import products_keyboard, one_product_keyboard
 from src.helpers.utils import Pagination, is_num
 from src.helpers.format import product_format
 from src.states.product import ProductStates
@@ -30,7 +30,10 @@ async def back_from_all_products_handler(query: CallbackQuery, state: FSMContext
     await query.message.edit_text(text="Страница техники", reply_markup=products_keyboard())
 
 
-@dp.callback_query_handler(lambda query: query.data in ["left#products#", "right#products#"], state=ProductStates.all_products)
+@dp.callback_query_handler(
+    lambda query: query.data.startswith("left#products#") or query.data.startswith("right#products#"),
+    state=ProductStates.all_products
+    )
 async def pagination_products_handler(query: CallbackQuery, state: FSMContext):
     pagination = Pagination(data_type="PRODUCTS")
     paginated = await pagination.paginate(query={}, page=int(query.data.split("#")[2]), limit=6)
@@ -64,13 +67,13 @@ async def remove_product_handler(query: CallbackQuery, state: FSMContext):
 
     query_data = dict(name=product['name'])
 
-    if product['count'] - 1 == 0 and product['in_use'] != 0:
+    if (product['count'] - 1 == 0 or product['not_in_use'] - 1 == 0) and product['in_use'] != 0:
         await query.message.answer(f"{product['name']} используются. По этосму удалить это неаозможна")
         return
 
-    if product['not_in_use'] - 1 == 0 and product['in_use'] > 0:
-        await query.message.answer(f"{product['name']} используются. По этосму удалить это неаозможна")
-        return
+    # if product['not_in_use'] - 1 == 0 and product['in_use'] > 0:
+    #     await query.message.answer(f"{product['name']} используются. По этосму удалить это неаозможна")
+    #     return
 
     if product['count'] - 1 == 0 and product['not_in_use'] - 1 == 0 and product['in_use'] == 0:
         await product_controller.delete(query_data)
@@ -105,19 +108,19 @@ async def add_product_handler(query: CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(lambda query: query.data.startswith("delete.product."), state=ProductStates.one_product)
 async def delete_product_handler(query: CallbackQuery, state: FSMContext):
-    id = query.data.split(".")[1]
+    id = query.data.split(".")[2]
 
     product = await product_controller.get_one({"_id": ObjectId(id)})
 
-    if product.in_use > 0:
+    if product['in_use'] > 0:
         await query.message.answer(
             text=f"Вы не можете удалить эту технику из базы, потому что {product['in_use']} этой техники взяты из склада"
         )
 
-    await product_controller.delete({"_id": id})
+    await product_controller.delete({"_id": ObjectId(id)})
 
     pagination = Pagination(data_type="PRODUCTS")
-    paginated = pagination.paginate(query={}, page=1, limit=6)
+    paginated = await pagination.paginate(query={}, page=1, limit=6)
     await ProductStates.all_products.set()
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
@@ -125,7 +128,7 @@ async def delete_product_handler(query: CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(lambda query: query.data == "add_product", state=ProductStates.process)
 async def add_product_handler(query: CallbackQuery, state: FSMContext):
     await ProductStates.name.set()
-    await query.message.edit_text(text="Отправьте название новой техники", reply_markup=back_keyboard())
+    await query.message.edit_text(text="Отправьте название новой техники")
 
 
 @dp.callback_query_handler(lambda query: query.data == "back", state=ProductStates.name)
@@ -155,12 +158,9 @@ async def add_product_name_handler(message: Message, state: FSMContext):
 
     await message.delete()
 
-    if message_for_delete is not None:
-        await bot.delete_message(message.chat.id, message_for_delete)
+    await message.answer(text=f"Отправьте сколько {product} есть в складе")
 
-    message_for_delete_1 = await message.answer(text=f"Отправьте сколько {product} есть в складе")
-
-    await state.update_data(dict(message_for_delete_1=message_for_delete_1.message_id, new_product_name=product))
+    await state.update_data(dict(new_product_name=product))
 
 
 @dp.message_handler(state=ProductStates.count)
@@ -170,19 +170,18 @@ async def add_product_handler(message: Message, state: FSMContext):
         return
 
     data = await state.get_data()
-    product_name, message_for_delete_1 = data.get('new_product_name'), data.get('message_for_delete_1')
+    product_name = data.get('new_product_name')
 
-    product_data = dict(name=product_name, count=int(message.text), in_use=0, not_in_use=int(message.text), status='active')
+    product_data = dict(
+        name=product_name,
+        count=int(message.text),
+        in_use=0,
+        not_in_use=int(message.text),
+        status='active'
+    )
 
     await product_controller.make(product_data)
 
     await ProductStates.process.set()
 
-    await message.delete()
-
-    if message_for_delete_1 is not None:
-        await bot.delete_message(message.chat.id, message_for_delete_1)
-
-    message_for_delete = await message.answer(text="Техника добавлена", reply_markup=products_keyboard())
-
-    await state.update_data(dict(message_for_delete=message_for_delete.message_id))
+    await message.answer(text="Техника добавлена", reply_markup=products_keyboard())

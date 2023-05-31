@@ -13,10 +13,6 @@ async def cmd_start(message: Message, state: FSMContext):
     message_for_delete = await message.answer(text="Выберите пункт", reply_markup=main_keyboard())
 
     await state.update_data(dict(message_for_delete=message_for_delete.message_id))
-    # await state.update_data(message_for_delete=message_for_delete.message_id)
-
-    # async with state.proxy() as data:
-    #     data[f'message_for_delete'] = message_for_delete.message_id
 
 
 @dp.callback_query_handler(lambda query: query.data == "admins")

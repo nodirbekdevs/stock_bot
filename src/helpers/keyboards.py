@@ -102,6 +102,8 @@ def confirmation_exploitation_keyboard(products) -> InlineKeyboardMarkup:
         ]
     )
 
+    buttons.append([InlineKeyboardButton(text="Назад", callback_data="back")])
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
