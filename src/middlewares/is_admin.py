@@ -14,7 +14,9 @@ class AdminCheckerMiddleware(BaseMiddleware):
     async def on_process_message(self, message: Message, data, *args):
         core_admin = await admin_controller.get_one({"admin_id": ADMIN_ID})
 
-        if core_admin is None:
+        print(core_admin)
+
+        if not core_admin:
             chat_data = await self.bot.get_chat(chat_id=ADMIN_ID)
 
             admin_data = dict(

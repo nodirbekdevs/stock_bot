@@ -97,5 +97,11 @@ def is_num(number) -> bool:
         return False
 
 
+def status_translate(status):
+    statuses = dict(process="В процессе", using="Используется", returned='Возвращенный')
+
+    return statuses[status]
+
+
 if __name__ == '__main__':
     pass

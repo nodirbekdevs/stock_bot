@@ -32,9 +32,8 @@ async def back_from_all_products_handler(query: CallbackQuery, state: FSMContext
 
 @dp.callback_query_handler(lambda query: query.data in ["left#admins#", "right#admins#"], state=AdminStates.all_admins)
 async def pagination_admins_handler(query: CallbackQuery, state: FSMContext):
-    page = query.data.split("#")[2]
     pagination = Pagination(data_type="ADMINS")
-    paginated = pagination.paginate(query=dict(status="active"), page=int(page), limit=6)
+    paginated = pagination.paginate(query=dict(status="active"), page=int(query.data.split("#")[2]), limit=6)
     await query.message.edit_text(text=paginated['message'], reply_markup=paginated['keyboard'])
 
 
@@ -94,14 +93,32 @@ async def back_from_add_admin_handler(query: CallbackQuery, state: FSMContext):
 async def add_admin_handler(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    message_for_delete = data[f'message_for_delete_{message.from_user.id}']
-
     if not is_num(message.text):
         await message.delete()
         await message.answer(text="Пожалуйста, отправьте правильный telegram_id")
         return
 
-    admin = await bot.get_chat(chat_id=int(message.text))
+    if message.from_user.id == int(message.text):
+        await message.answer("Отправьте telegrma id другого админа. Это telegram id пренадлежит вам.")
+        return
+
+    try:
+        admin = await bot.get_chat(chat_id=int(message.text))
+    except:
+        message_for_delete = data['message_for_delete']
+        await bot.delete_message(message.from_user.id, message_for_delete)
+
+        message_id_for_delete = await message.answer("Отправьте правильное telegrma id", reply_markup=admin_keyboard())
+
+        await AdminStates.process.set()
+
+        await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
+        # await state.update_data(message_for_delete=message_id_for_delete.message_id)
+
+        # async with state.proxy() as data:
+        #     data[f'message_for_delete'] = message_id_for_delete.message_id
+
+        return
 
     admin_data = dict(
         admin_id=admin['id'],
@@ -120,9 +137,16 @@ async def add_admin_handler(message: Message, state: FSMContext):
 
     await message.delete()
 
-    await bot.delete_message(message.chat.id, message_for_delete)
+    try:
+        message_for_delete = data[f'message_for_delete']
+        await bot.delete_message(message.chat.id, message_for_delete)
+    except:
+        message_id_for_delete = await message.answer(text="Новый админ добален")
+        await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
+        return
 
     message_id_for_delete = await message.answer(text="Новый админ добален", reply_markup=admin_keyboard())
+    await state.update_data(dict(message_for_delete=message_id_for_delete.message_id))
 
-    async with state.proxy() as data:
-        data[f'message_for_delete_{message.from_user.id}'] = message_id_for_delete.message_id
+    # async with state.proxy() as data:
+    #     data[f'message_for_delete'] = message_id_for_delete.message_id
