@@ -135,7 +135,7 @@ async def add_admin_handler(message: Message, state: FSMContext):
 
     await admin_controller.make(admin_data)
 
-    await bot.send_message(chat_id=admin['id'], text="Вы успешно добавлены для пользования склада. Нажмите /start")
+    await bot.send_message(chat_id=admin['id'], text="Вы успешно добавлены для пользования склада.\n Нажмите /start")
 
     await message.delete()
 

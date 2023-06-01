@@ -141,7 +141,7 @@ async def back_from_add_product_handler(query: CallbackQuery, state: FSMContext)
 async def add_product_name_handler(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    product, message_for_delete = message.text, data.get('message_for_delete')
+    product = message.text
 
     if is_num(message.text):
         await message.answer("Отправьте название а не номер")
