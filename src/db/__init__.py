@@ -2,7 +2,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from src.helpers.settings import MONGO_DB_URL
 
 db_connection = AsyncIOMotorClient(MONGO_DB_URL)
-db = db_connection['uztelecom_info_stock_project']
+db = db_connection['uztelecom_infosystems_stock_project']
 
 
 # from sqlalchemy import create_engine
