@@ -9,6 +9,7 @@ from src.handlers import main, admin, product, exploitation
 from src.handlers import register_same_handlers
 from src.middlewares.is_admin import AdminCheckerMiddleware
 
+dp.setup_middleware(AdminCheckerMiddleware(bot=bot))
 register_same_handlers(dp)
 
 
@@ -26,7 +27,6 @@ async def on_shutdown():
 
 
 if __name__ == '__main__':
-    dp.setup_middleware(AdminCheckerMiddleware(bot=bot))
     loop = get_event_loop()
     loop.run_until_complete(set_up_commands(bot_instance=bot))
     executor.start_polling(dp, on_startup=on_startup(), skip_updates=True)
