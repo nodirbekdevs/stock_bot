@@ -3,7 +3,7 @@ from aiogram.types import Message
 from aiogram.dispatcher.handler import CancelHandler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from src.controllers import admin_controller
-from src.helpers.settings import ADMIN_IDS, ADMIN_ID
+from src.helpers.settings import ADMINS, ADMIN_ID
 
 
 class AdminCheckerMiddleware(BaseMiddleware):
@@ -26,9 +26,12 @@ class AdminCheckerMiddleware(BaseMiddleware):
 
             await admin_controller.make(admin_data)
 
+        for admin_id in ADMINS:
+            await admin_controller.get_or_create({"admin_id": admin_id, "status": 'active'})
+
         admin = await admin_controller.get_one({"admin_id": message.from_user.id, "status": {"$in": ['process', 'active']}})
 
-        if admin is None and message.from_user.id not in ADMIN_IDS:
+        if admin is None and message.from_user.id not in ADMINS:
             await self.bot.send_message(chat_id=message.from_user.id, text='Not for you')
             raise CancelHandler()
 

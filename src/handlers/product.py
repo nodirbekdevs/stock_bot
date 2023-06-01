@@ -156,8 +156,6 @@ async def add_product_name_handler(message: Message, state: FSMContext):
 
     await ProductStates.count.set()
 
-    await message.delete()
-
     await message.answer(text=f"Отправьте сколько {product} есть в складе")
 
     await state.update_data(dict(new_product_name=product))

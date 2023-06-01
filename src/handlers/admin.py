@@ -119,7 +119,7 @@ async def add_admin_handler(message: Message, state: FSMContext):
         return
 
     try:
-        admin = await bot.get_chat(chat_id=int(message.text))
+        admin = await bot.get(chat_id=int(message.text))
     except:
         await message.answer("Отправьте правильное telegrma id", reply_markup=admin_keyboard())
         return

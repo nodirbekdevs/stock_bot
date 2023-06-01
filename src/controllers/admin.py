@@ -20,6 +20,17 @@ class AdminController:
         except Exception as error:
             print(error)
 
+    async def get_or_create(self, query: dict) -> Admin:
+        try:
+            exist_admin = await self.get_one(query)
+
+            if exist_admin is None:
+                await self.make(query)
+
+            return True
+        except Exception as error:
+            print(error)
+
     async def get_pagination(self, query: dict, offset: int, limit: int) -> List[Admin]:
         try:
             return await self.model.find(query).skip(offset).limit(limit).to_list(length=limit)
