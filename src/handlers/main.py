@@ -1,7 +1,7 @@
 from aiogram.dispatcher import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ContentType, ChatType
 
-from src.loader import dp
+from src.loader import dp, bot
 from src.controllers import admin_controller
 from src.helpers.keyboards import main_keyboard, admin_keyboard, products_keyboard, exploitation_keyboard
 from src.states.admin import AdminStates
@@ -11,6 +11,12 @@ from src.states.exploitation import ExploitationStates
 
 @dp.message_handler(commands='start')
 async def cmd_start(message: Message, state: FSMContext):
+    print(message)
+
+    if message.chat.type == 'group' or message.chat.type == 'supergroup':
+        await message.answer("Не разрешено")
+        return
+
     data = dict()
 
     admin = await admin_controller.get_one({"admin_id": message.from_user.id})

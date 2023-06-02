@@ -4,9 +4,10 @@ from bson import ObjectId
 
 from src.loader import dp
 from src.controllers import product_controller
-from src.helpers.keyboards import products_keyboard, one_product_keyboard
+from src.helpers.keyboards import products_keyboard, one_product_keyboard, back_keyboard
 from src.helpers.utils import Pagination, is_num
 from src.helpers.format import product_format
+from src.helpers.settings import CORE_ADMINS
 from src.states.product import ProductStates
 
 
@@ -48,7 +49,9 @@ async def get_product_handler(query: CallbackQuery, state: FSMContext):
 
     await ProductStates.one_product.set()
 
-    await query.message.edit_text(text=product_format(product), reply_markup=one_product_keyboard(id))
+    keyboard = one_product_keyboard(id) if query.from_user.id in CORE_ADMINS else back_keyboard()
+
+    await query.message.edit_text(text=product_format(product), reply_markup=keyboard)
 
 
 @dp.callback_query_handler(lambda query: query.data == "back", state=ProductStates.one_product)
@@ -127,6 +130,10 @@ async def delete_product_handler(query: CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(lambda query: query.data == "add_product", state=ProductStates.process)
 async def add_product_handler(query: CallbackQuery, state: FSMContext):
+    if query.from_user.id not in CORE_ADMINS:
+        await query.message.answer("Вы не можете добавить технику")
+        return
+
     await ProductStates.name.set()
     await query.message.edit_text(text="Отправьте название новой техники")
 

@@ -1,4 +1,4 @@
-from src.helpers.utils import status_translate
+# from .utils import status_translator
 
 
 def admin_format(admin):
@@ -36,7 +36,8 @@ def confirmation_exploitation_format(exploitation, admin_name, products):
         information += f"Название - {product['product_name']}\n"
         information += f"Число - {product['quantity']}\n\n"
 
-    information += f"Статус - {status_translate(exploitation['status'])}\n"
+    # information += f"Статус - {status_translator(exploitation['status'])}\n"
+    information += f"Статус - В процессе\n"
 
     return information
 
@@ -55,7 +56,8 @@ def exploitation_using_format(exploitation, admin_name, products):
 
     information += f"Время получения - {exploitation['given_at'].strftime('%d.%m.%Y %H:%M')}\n\n"
 
-    information += f"Статус - {status_translate(exploitation['status'])}"
+    # information += f"Статус - {status_translator(exploitation['status'])}"
+    information += f"Статус - Используется"
 
     return information
 
@@ -76,6 +78,7 @@ def exploitation_used_format(exploitation, admin_names, products):
     information += f"Время получения - {exploitation['given_at'].strftime('%d.%m.%Y %H:%M')}\n"
     information += f"Время выдачи - {exploitation['returned_at'].strftime('%d.%m.%Y %H:%M')}\n\n"
 
-    information += f"Статус - {status_translate(exploitation['status'])}"
+    # information += f"Статус - {status_translator(exploitation['status'])}"
+    information += f"Статус - Возвращенный"
 
     return information

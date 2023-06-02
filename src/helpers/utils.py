@@ -1,14 +1,17 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from src.controllers import admin_controller, product_controller, exploitation_controller
+from bson import ObjectId
+
 from src.helpers.keyboards import back_keyboard
+from src.controllers import admin_controller, exploitation_controller, exploitation_items_controller, product_controller
+from src.helpers.format import exploitation_using_format, exploitation_used_format
 
 
 class Pagination:
     def __init__(self, data_type: str):
         self.data_type = data_type
 
-    async def paginate(self, query: dict, page: int, limit: int, type: str = "") -> dict:
+    async def paginate(self, query: dict, page: int, limit: int) -> dict:
         data, all_data, clause = [], [], ""
 
         offset = limit * (page - 1)
@@ -97,11 +100,31 @@ def is_num(number) -> bool:
         return False
 
 
-def status_translate(status):
+async def send_message_to_group(exploitation_type, exploitation_id):
+    admin_names, message = "", ""
+
+    exploitation = await exploitation_controller.get_one({"_id": ObjectId(exploitation_id)})
+
+    exploitation_items = await exploitation_items_controller.get_all(
+        {"exploitation_id": exploitation['_id'], "status": exploitation['status']})
+
+    if exploitation_type == 'using':
+        admin_names = (await admin_controller.get_one({"admin_id": exploitation['admin']}))['first_name']
+        message = exploitation_using_format(exploitation, admin_names, exploitation_items)
+    elif exploitation_type == 'used':
+        given = (await admin_controller.get_one({"admin_id": exploitation['admin']}))['first_name']
+        received = (await admin_controller.get_one({"admin_id": exploitation['received']}))['first_name']
+        admin_names = {"given": given, "received": received}
+        message = exploitation_used_format(exploitation, admin_names, exploitation_items)
+
+    return message
+
+
+def status_translator(status):
     statuses = dict(process="В процессе", using="Используется", returned='Возвращенный')
 
     return statuses[status]
 
 
-if __name__ == '__main__':
-    pass
+# if __name__ == '__main__':
+#     pass
